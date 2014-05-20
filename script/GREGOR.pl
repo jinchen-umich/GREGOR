@@ -170,10 +170,6 @@ $thread = threads->create(\&runMakeFile,$makeFile,$jobs);
 $thread_num ++;
 $thread->detach();
 
-#########$thread = threads->create(\&progressBar,$logFile,$totalTaskes);
-#########$thread_num ++;
-#########$thread->detach();
-
 while ($thread_num > 1)
 {
 	sleep(5);
@@ -236,7 +232,6 @@ sub progressBar
 		my $percent = $lines / $taskes;
 		$percent = int($percent * 100);
 
-#		print "\r $progress_symbol[$n] $lines / $taskes";
 		print "\r $progress_symbol[$n] $lines / $taskes ($percent%)";
 		
 		$n = ($n>=3)? 0:$n+1;
