@@ -94,7 +94,14 @@ sub ReadConf
 
 	$self->{"conf"}->{"SORTED_BED_FILE_DIR"} = $self->{"conf"}->{"OUT_DIR"}."sortedBedFiles/";
 
-	if ($conf{"MOSRUN"} ne "")
+	my $mosrunStr = $conf{"MOSRUN"};
+	$mosrunStr =~ s/\"|\ |\t//g;
+
+	if ($mosrunStr eq "")
+	{
+		$self->{"conf"}->{"MOSRUN"} = "";
+	}
+	else
 	{
 		$self->{"conf"}->{"MOSRUN"} = $conf{"MOSRUN"};
 	}
@@ -450,6 +457,17 @@ sub CreateMakeFile
 	my @bedFileResultDIR;
 	undef @bedFileResultDIR;
 
+	my $cmdSuffix = "";
+
+	if ($self->{"conf"}->{"MOSRUN"} ne "")
+	{
+		$self->{"conf"}->{"MOSRUN"} = $self->{"conf"}->{"MOSRUN"}." \'";
+
+		$cmdSuffix = "\'";
+	}
+
+
+
 ## Read Bed Files from Bed index File
 	open (IN,$bedFileIndex) || die "can't open the file $bedFileIndex";
 
@@ -524,8 +542,8 @@ sub CreateMakeFile
 			print OUT "\t".$bedFileResultDIR[$i]."PValue.txt.OK";
 		}
 		print OUT "\n";
-		print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."create.statistic.summary.file.pl --statisticSummaryFile ".$outfileDIR."StatisticSummaryFile.txt --resultDIR ".$outfileDIR." --logFile $logFile\'\n";
-		print OUT "\ttouch $outfileDIR"."StatisticSummaryFile.txt.OK\n";
+		print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."create.statistic.summary.file.pl --statisticSummaryFile ".$outfileDIR."StatisticSummaryFile.txt --resultDIR ".$outfileDIR." --logFile $logFile".$cmdSuffix."\n";
+		print OUT "\ttouch $outfileDIR"."StatisticSummaryFile.txt.OK\n\n";
 
 ############################################################################################
 		$infileDIR = $self->{"conf"}->{"NEIGHBOR_DIR"};
@@ -539,7 +557,7 @@ sub CreateMakeFile
 				print OUT "\t".$bedFileResultDIR[$i]."neighbor.on.chr$j.LDbuddy.in.bed.txt.OK";
 			}
 			print OUT "\n";
-			print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."calculatePvalue.pl --BedFilesDIR $bedFileResultDIR[$i] --neighborFile $infileDIR"."index.snp.neighbors.txt --logFile $logFile\'\n";
+			print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."calculatePvalue.pl --BedFilesDIR $bedFileResultDIR[$i] --neighborFile $infileDIR"."index.snp.neighbors.txt --logFile $logFile".$cmdSuffix."\n";
 			print OUT "\ttouch $bedFileResultDIR[$i]"."PValue.txt.OK\n\n";
 		}
 
@@ -553,7 +571,7 @@ sub CreateMakeFile
 			for (my $j = 1; $j < 23; $j++)
 			{
 				print OUT $bedFileResultDIR[$i]."neighbor.on.chr$j.LDbuddy.in.bed.txt.OK\t:\t".$sortedBedOKFiles[$i]."\t".$indexDIR."index.snp.txt.OK\t".$neighborDIR."neighbor.chr$j.LDbuddy.txt.OK\n";
-				print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."overlap.pl --indexSNPList ".$indexDIR."index.snp.LD.txt --neighborSNPList ".$neighborDIR."neighbor.chr$j.LDbuddy.txt --chrid $j --sortedBedFile $sortedBedFiles[$i] --resultDIR $bedFileResultDIR[$i]  --logFile $logFile\'\n";
+				print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."overlap.pl --indexSNPList ".$indexDIR."index.snp.LD.txt --neighborSNPList ".$neighborDIR."neighbor.chr$j.LDbuddy.txt --chrid $j --sortedBedFile $sortedBedFiles[$i] --resultDIR $bedFileResultDIR[$i]  --logFile $logFile".$cmdSuffix."\n";
 				print OUT "\ttouch $bedFileResultDIR[$i]"."neighbor.on.chr$j.LDbuddy.in.bed.txt.OK\n\n";
 			}
 		}
@@ -565,7 +583,7 @@ sub CreateMakeFile
 			for (my $i = 0; $i < int(@unsortBedFiles); $i++)
 			{
 				print OUT $sortedBedOKFiles[$i]."\t:\t".$unsortBedFiles[$i]."\n";
-				print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."sort.bed.file.pl --bedFile ".$unsortBedFiles[$i]." --sortedBedFile ".$sortedBedFiles[$i]." --logFile $logFile\'\n";
+				print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."sort.bed.file.pl --bedFile ".$unsortBedFiles[$i]." --sortedBedFile ".$sortedBedFiles[$i]." --logFile $logFile".$cmdSuffix."\n";
 				print OUT "\ttouch ".$sortedBedOKFiles[$i]."\n\n";
 			}
 		}
@@ -586,7 +604,7 @@ sub CreateMakeFile
 		for (my $i = 1; $i < 23; $i++)
 		{
 			print OUT $outfileDIR."neighbor.chr$i.LDbuddy.txt.OK\t:\t$infileDIR"."index.snp.neighbors.txt.OK\n";
-			print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."find.neighbors.LDbuddy.pl --neighborlist ".$infileDIR."index.snp.neighbors.txt --refDIR $refDIR --r2Threshold $r2Threshold --ldWindowSize $ldWindowSize --chrid $i --neighborLDlist ".$outfileDIR."neighbor.chr$i.LDbuddy.txt --logFile $logFile\'\n";
+			print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."find.neighbors.LDbuddy.pl --neighborlist ".$infileDIR."index.snp.neighbors.txt --refDIR $refDIR --r2Threshold $r2Threshold --ldWindowSize $ldWindowSize --chrid $i --neighborLDlist ".$outfileDIR."neighbor.chr$i.LDbuddy.txt --logFile $logFile".$cmdSuffix."\n";
 			print OUT "\ttouch ".$outfileDIR."neighbor.chr$i.LDbuddy.txt.OK\n\n";
 		}
 
@@ -604,7 +622,7 @@ sub CreateMakeFile
 
 		print OUT "\n";
 
-		print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."find.neighbors.pl --indexSNPFile ".$self->{"conf"}->{"INDEX_DIR"}."annotated.index.snp.txt --cubeFileDIR ".$infileDIR." --minNeighbor ".$minNeighborNum." --indexSNPNeighborFile ".$outfileDIR."index.snp.neighbors.txt --logFile $logFile\'\n";
+		print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."find.neighbors.pl --indexSNPFile ".$self->{"conf"}->{"INDEX_DIR"}."annotated.index.snp.txt --cubeFileDIR ".$infileDIR." --minNeighbor ".$minNeighborNum." --indexSNPNeighborFile ".$outfileDIR."index.snp.neighbors.txt --logFile $logFile".$cmdSuffix."\n";
 		print OUT "\ttouch ".$outfileDIR."index.snp.neighbors.txt.OK\n\n";
 
 ############################################################################################
@@ -613,7 +631,7 @@ sub CreateMakeFile
 		$outfileDIR = $self->{"conf"}->{"INDEX_DIR"};
 
 		print OUT $outfileDIR."index.snp.txt.OK\t:\t".$self->{"conf"}->{"INDEX_SNP_FILE"}." ".$infileDIR."cube.id.txt.OK\n";
-		print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."annotate.index.snp.pl --indexSNPList ".$self->{"conf"}->{"INDEX_SNP_FILE"}." --refDIR $refDIR --cubeIDFile ".$infileDIR."cube.id.txt --r2Threshold ".$r2Threshold." --ldWindowSize ".$ldWindowSize." --annotatedList ".$outfileDIR."annotated.index.snp.txt --nonannotatedList ".$outfileDIR."nonannoted.index.snp.txt --rsidSNPList ".$outfileDIR."rsid.index.snp.txt --indexSNPLDList ".$outfileDIR."index.snp.LD.txt --logFile $logFile\'\n";
+		print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."annotate.index.snp.pl --indexSNPList ".$self->{"conf"}->{"INDEX_SNP_FILE"}." --refDIR $refDIR --cubeIDFile ".$infileDIR."cube.id.txt --r2Threshold ".$r2Threshold." --ldWindowSize ".$ldWindowSize." --annotatedList ".$outfileDIR."annotated.index.snp.txt --nonannotatedList ".$outfileDIR."nonannoted.index.snp.txt --rsidSNPList ".$outfileDIR."rsid.index.snp.txt --indexSNPLDList ".$outfileDIR."index.snp.LD.txt --logFile $logFile".$cmdSuffix."\n";
 		print OUT "\ttouch ".$outfileDIR."index.snp.txt.OK\n\n";
 
 ############################################################################################
@@ -624,7 +642,7 @@ sub CreateMakeFile
 		for (my $i = 1; $i < 23; $i++)
 		{
 			print OUT $outfileDIR."chr$i.maf.dist.ldnum.id.txt.OK\t:\t".$infileDIR."cube.id.txt.OK ".$infileDIR."chr$i.maf.dist.ldnum.txt.OK\n";
-			print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."put.snp.in.cubes.pl --chrfile ".$infileDIR."chr$i.maf.dist.ldnum.txt --chrid $i --cubeIDFile ".$infileDIR."cube.id.txt --out ".$outfileDIR."chr$i.maf.dist.ldnum.id.txt --logFile $logFile\'\n";
+			print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."put.snp.in.cubes.pl --chrfile ".$infileDIR."chr$i.maf.dist.ldnum.txt --chrid $i --cubeIDFile ".$infileDIR."cube.id.txt --out ".$outfileDIR."chr$i.maf.dist.ldnum.id.txt --logFile $logFile".$cmdSuffix."\n";
 			print OUT "\ttouch ".$outfileDIR."chr$i.maf.dist.ldnum.id.txt.OK\n\n";
 		}
 
@@ -642,7 +660,7 @@ sub CreateMakeFile
 
 		print OUT "\n";
 
-		print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."calculate.cube.id.pl --chrDIR ".$outfileDIR." --out ".$outfileDIR."cube.id.txt --logFile $logFile\'\n";
+		print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."calculate.cube.id.pl --chrDIR ".$outfileDIR." --out ".$outfileDIR."cube.id.txt --logFile $logFile".$cmdSuffix."\n";
 		print OUT "\ttouch ".$outfileDIR."cube.id.txt.OK\n\n";
 
 ############################################################################################
@@ -654,7 +672,7 @@ sub CreateMakeFile
 		{
 			print OUT $outfileDIR."chr$i.maf.dist.ldnum.txt.OK\t:\t".$infileDIR."chr$i.dbm\n";
 
-			print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."calculate.maf.dist.ldnum.pl --chrid ".$i." --refDIR $refDIR --r2Threshold $r2Threshold --ldWindowSize $ldWindowSize --chrout ".$outfileDIR."chr$i.maf.dist.ldnum.txt --distributionFile ".$outfileDIR."chr$i.distribution.txt --logFile $logFile\'\n";
+			print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."calculate.maf.dist.ldnum.pl --chrid ".$i." --refDIR $refDIR --r2Threshold $r2Threshold --ldWindowSize $ldWindowSize --chrout ".$outfileDIR."chr$i.maf.dist.ldnum.txt --distributionFile ".$outfileDIR."chr$i.distribution.txt --logFile $logFile".$cmdSuffix."\n";
 			print OUT "\ttouch ".$outfileDIR."chr$i.maf.dist.ldnum.txt.OK\n\n";
 		}
 	}
@@ -676,8 +694,8 @@ sub CreateMakeFile
 			print OUT "\t".$bedFileResultDIR[$i]."PValue.txt.OK";
 		}
 		print OUT "\n";
-		print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."create.statistic.summary.file.pl --statisticSummaryFile ".$outfileDIR."StatisticSummaryFile.txt --resultDIR ".$outfileDIR." --logFile $logFile\'\n";
-		print OUT "\ttouch $outfileDIR"."StatisticSummaryFile.txt.OK\n";
+		print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."create.statistic.summary.file.pl --statisticSummaryFile ".$outfileDIR."StatisticSummaryFile.txt --resultDIR ".$outfileDIR." --logFile $logFile".$cmdSuffix."\n";
+		print OUT "\ttouch $outfileDIR"."StatisticSummaryFile.txt.OK\n\n";
 
 ############################################################################################
 		$infileDIR = $self->{"conf"}->{"NEIGHBOR_DIR"};
@@ -691,7 +709,7 @@ sub CreateMakeFile
 				print OUT "\t".$bedFileResultDIR[$i]."neighbor.on.chr$j.LDbuddy.in.bed.txt.OK";
 			}
 			print OUT "\n";
-			print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."calculatePvalue.pl --BedFilesDIR $bedFileResultDIR[$i] --neighborFile $infileDIR"."index.snp.neighbors.txt --logFile $logFile\'\n";
+			print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."calculatePvalue.pl --BedFilesDIR $bedFileResultDIR[$i] --neighborFile $infileDIR"."index.snp.neighbors.txt --logFile $logFile".$cmdSuffix."\n";
 			print OUT "\ttouch $bedFileResultDIR[$i]"."PValue.txt.OK\n\n";
 		}
 
@@ -705,7 +723,7 @@ sub CreateMakeFile
 			for (my $j = 1; $j < 23; $j++)
 			{
 				print OUT $bedFileResultDIR[$i]."neighbor.on.chr$j.LDbuddy.in.bed.txt.OK\t:\t".$sortedBedOKFiles[$i]."\t".$indexDIR."index.snp.txt.OK\t".$neighborDIR."neighbor.chr$j.LDbuddy.txt.OK\n";
-				print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."overlap.pl --indexSNPList ".$indexDIR."index.snp.LD.txt --neighborSNPList ".$neighborDIR."neighbor.chr$j.LDbuddy.txt --chrid $j --sortedBedFile $sortedBedFiles[$i] --resultDIR $bedFileResultDIR[$i]  --logFile $logFile\'\n";
+				print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."overlap.pl --indexSNPList ".$indexDIR."index.snp.LD.txt --neighborSNPList ".$neighborDIR."neighbor.chr$j.LDbuddy.txt --chrid $j --sortedBedFile $sortedBedFiles[$i] --resultDIR $bedFileResultDIR[$i]  --logFile $logFile".$cmdSuffix."\n";
 				print OUT "\ttouch $bedFileResultDIR[$i]"."neighbor.on.chr$j.LDbuddy.in.bed.txt.OK\n\n";
 			}
 		}
@@ -717,7 +735,7 @@ sub CreateMakeFile
 			for (my $i = 0; $i < int(@unsortBedFiles); $i++)
 			{
 				print OUT $sortedBedOKFiles[$i]."\t:\t".$unsortBedFiles[$i]."\n";
-				print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."sort.bed.file.pl --bedFile ".$unsortBedFiles[$i]." --sortedBedFile ".$sortedBedFiles[$i]." --logFile $logFile\'\n";
+				print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."sort.bed.file.pl --bedFile ".$unsortBedFiles[$i]." --sortedBedFile ".$sortedBedFiles[$i]." --logFile $logFile".$cmdSuffix."\n";
 				print OUT "\ttouch ".$sortedBedOKFiles[$i]."\n\n";
 			}
 		}
@@ -738,7 +756,7 @@ sub CreateMakeFile
 		for (my $i = 1; $i < 23; $i++)
 		{
 			print OUT $outfileDIR."neighbor.chr$i.LDbuddy.txt.OK\t:\t$infileDIR"."index.snp.neighbors.txt.OK\n";
-			print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."find.neighbors.LDbuddy.pl --neighborlist ".$infileDIR."index.snp.neighbors.txt --refDIR $refDIR --r2Threshold $r2Threshold --ldWindowSize $ldWindowSize --chrid $i --neighborLDlist ".$outfileDIR."neighbor.chr$i.LDbuddy.txt --logFile $logFile\'\n";
+			print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."find.neighbors.LDbuddy.pl --neighborlist ".$infileDIR."index.snp.neighbors.txt --refDIR $refDIR --r2Threshold $r2Threshold --ldWindowSize $ldWindowSize --chrid $i --neighborLDlist ".$outfileDIR."neighbor.chr$i.LDbuddy.txt --logFile $logFile".$cmdSuffix."\n";
 			print OUT "\ttouch ".$outfileDIR."neighbor.chr$i.LDbuddy.txt.OK\n\n";
 		}
 
@@ -756,7 +774,7 @@ sub CreateMakeFile
 
 		print OUT "\n";
 
-		print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."find.neighbors.pl --indexSNPFile ".$self->{"conf"}->{"INDEX_DIR"}."annotated.index.snp.txt --cubeFileDIR ".$infileDIR." --minNeighbor ".$minNeighborNum." --indexSNPNeighborFile ".$outfileDIR."index.snp.neighbors.txt --logFile $logFile\'\n";
+		print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."find.neighbors.pl --indexSNPFile ".$self->{"conf"}->{"INDEX_DIR"}."annotated.index.snp.txt --cubeFileDIR ".$infileDIR." --minNeighbor ".$minNeighborNum." --indexSNPNeighborFile ".$outfileDIR."index.snp.neighbors.txt --logFile $logFile".$cmdSuffix."\n";
 		print OUT "\ttouch ".$outfileDIR."index.snp.neighbors.txt.OK\n\n";
 
 ############################################################################################
@@ -765,7 +783,7 @@ sub CreateMakeFile
 		$outfileDIR = $self->{"conf"}->{"INDEX_DIR"};
 
 		print OUT $outfileDIR."index.snp.txt.OK\t:\t".$self->{"conf"}->{"INDEX_SNP_FILE"}." ".$infileDIR."cube.id.txt\n";
-		print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."annotate.index.snp.pl --indexSNPList ".$self->{"conf"}->{"INDEX_SNP_FILE"}." --refDIR $refDIR --cubeIDFile ".$infileDIR."cube.id.txt --r2Threshold ".$r2Threshold." --ldWindowSize ".$ldWindowSize." --annotatedList ".$outfileDIR."annotated.index.snp.txt --nonannotatedList ".$outfileDIR."nonannoted.index.snp.txt --rsidSNPList ".$outfileDIR."rsid.index.snp.txt --indexSNPLDList ".$outfileDIR."index.snp.LD.txt --logFile $logFile\'\n";
+		print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."annotate.index.snp.pl --indexSNPList ".$self->{"conf"}->{"INDEX_SNP_FILE"}." --refDIR $refDIR --cubeIDFile ".$infileDIR."cube.id.txt --r2Threshold ".$r2Threshold." --ldWindowSize ".$ldWindowSize." --annotatedList ".$outfileDIR."annotated.index.snp.txt --nonannotatedList ".$outfileDIR."nonannoted.index.snp.txt --rsidSNPList ".$outfileDIR."rsid.index.snp.txt --indexSNPLDList ".$outfileDIR."index.snp.LD.txt --logFile $logFile".$cmdSuffix."\n";
 		print OUT "\ttouch ".$outfileDIR."index.snp.txt.OK\n\n";
 	}
 
@@ -787,6 +805,13 @@ sub CreateTopNBedMakeFile
 	my $bedFileIndex = $self->{"conf"}->{"BED_FILE_INDEX"};
 	my $sortedBedFileDIR = $self->{"conf"}->{"SORTED_BED_FILE_DIR"};
 	my $StatisticSummaryFile = $self->{"conf"}->{"OUT_DIR"}."StatisticSummaryFile.txt";
+
+	my $cmdSuffix = "";
+	
+	if ($self->{"conf"}->{"MOSRUN"} ne "")
+	{
+		$cmdSuffix = "\'";
+	}
 
 	open (IN,$StatisticSummaryFile) || die "can't open the file!\n";
 
@@ -920,7 +945,7 @@ sub CreateTopNBedMakeFile
 
 		print OUT "\n";
 
-		print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."merge.index.SNP.and.LD.in.bed.pl --bedFileName $pValueArr[$i] --inDIR $topNDIR --outDIR $topNDIR --logFile $logFile\'\n";
+		print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."merge.index.SNP.and.LD.in.bed.pl --bedFileName $pValueArr[$i] --inDIR $topNDIR --outDIR $topNDIR --logFile $logFile".$cmdSuffix."\n";
 		print OUT "\ttouch ".$topNDIR.$pValueArr[$i].".txt.OK\n\n";
 	}
 
@@ -930,7 +955,7 @@ sub CreateTopNBedMakeFile
 		for (my $j = 1; $j < 23; $j++)
 		{
 			print OUT $topNDIR.$pValueArr[$i].".chr$j.txt.OK\t:\t".$self->{"conf"}->{"OUT_DIR"}."StatisticSummaryFile.txt.OK\n";
-			print OUT "\t".$self->{"conf"}->{"MOSRUN"}." \'$perlCMD ".$scriptDIR."check.index.snp.and.lds.in.bed.pl --indexSNPLDFile ".$self->{"conf"}->{"OUT_DIR"}."index_SNP/index.snp.LD.txt --sortedBedFile $sortedBedFiles[$i] --chrid $j --SNPInBedFile $topNDIR"."$pValueArr[$i].chr$j.txt --logFile $logFile\'\n";
+			print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."check.index.snp.and.lds.in.bed.pl --indexSNPLDFile ".$self->{"conf"}->{"OUT_DIR"}."index_SNP/index.snp.LD.txt --sortedBedFile $sortedBedFiles[$i] --chrid $j --SNPInBedFile $topNDIR"."$pValueArr[$i].chr$j.txt --logFile $logFile".$cmdSuffix."\n";
 			print OUT "\ttouch ".$topNDIR.$pValueArr[$i].".chr$j.txt.OK\n\n";
 		}
 	}
