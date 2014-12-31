@@ -3,7 +3,8 @@
 use strict;
 use warnings;
 #use FindBin qw($Bin);
-use DB_File;
+#use DB_File;
+use DBI;
 use Switch;
 use Getopt::Long;
 use Time::HiRes qw[gettimeofday tv_interval];
@@ -117,19 +118,25 @@ my $now = "$year-$mon-$day $hour:$min:$sec";
 
 my $logFileLock = $logFile.".lck";
 
+my $database = $refDIR."CHR$chrid.db";
+
+if (!(-e $database))
+{
+	print "Please make sure you have downloaded all reference files!\nCan't find CHR$chrid.db!\n";
+	
+	exit(1);
+}
+
+my $driver   = "SQLite";
+my $dsn = "DBI:$driver:dbname=$database";
+my $userid = "";
+my $password = "";
+my $dbh = DBI->connect($dsn, $userid, $password, { RaiseError => 1 }) or die $DBI::errstr;
+
 my %neighborHash;
 
 open (IN,$neighborlist) || die "can't the file $neighborlist!\n";
 open (OUT,">".$neighborLDlist) || die "can't the file $neighborLDlist!\n";
-
-my %hash;
-
-my $dbm = $refDIR."chr$chrid.dbm";
-
-if (-e $dbm)
-{
-	dbmopen (%hash,$dbm,0644) || die "can't open DBM $dbm!\n";
-}
 
 print OUT "neighbor_SNP\tLD_buddy_pos\n";
 
@@ -156,10 +163,21 @@ while (defined($readline=<IN>))
 				my @LDArr;
 				undef @LDArr;
 
-				if (exists($hash{$pos}))
+				my $stmt = qq(SELECT * from CUBE where POS=$pos;);
+				
+				my $sth = $dbh->prepare( $stmt );
+				my $rv = $sth->execute() or die $DBI::errstr;
+				
+				if($rv < 0)
 				{
-					@fields = split(/\t/,$hash{$pos});
-					@fields = split(/\|/,$fields[6]);
+					print $DBI::errstr;
+					
+					exit(1);
+				}
+
+				while(my @row = $sth->fetchrow_array())
+				{
+					@fields = split(/\|/,$row[7]);
 		      
 					for (my $i = 0; $i < int(@fields); $i++)
 		      {
@@ -200,10 +218,7 @@ while (defined($readline=<IN>))
 close IN;
 close OUT;
 
-if (-e $dbm)
-{
-	dbmclose(%hash);
-}
+$dbh->disconnect();
 
 my $end = time;
 
