@@ -129,9 +129,9 @@ my $logFileLock = $logFile.".lck";
 
 my $database = $refDIR."CHR$chrid.db";
 
-if (!(-e $dbm))
+if (!(-e $database))
 {
-	print "Please make sure you have download all reference files!\nCan't find chr$chrid.dbm!\n";
+	print "Please make sure you have download all reference files!\nCan't find CHR$chrid.db!\n";
 
 	exit(1);
 }
@@ -142,7 +142,7 @@ my $userid = "";
 my $password = "";
 my $dbh = DBI->connect($dsn, $userid, $password, { RaiseError => 1 }) or die $DBI::errstr;
 
-my $stmt = qq(SELECT * from CUBE where POS=$pos;);
+my $stmt = qq(SELECT * from CUBE;);
 
 my $sth = $dbh->prepare( $stmt );
 my $rv = $sth->execute() or die $DBI::errstr;
@@ -164,6 +164,7 @@ print OUT "pos\tmaf\tdist2Gene\tLDNum\n";
 
 while(my @row = $sth->fetchrow_array())
 {
+	my $pos = $row[0];
 	my $maf = $row[4];
 	my $dist = $row[5];
 	my $lds = $row[7];
