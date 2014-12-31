@@ -3,7 +3,8 @@
 use strict;
 use warnings;
 #use FindBin qw($Bin);
-use DB_File;
+#use DB_File;
+use DBI;
 use Switch;
 use Getopt::Long;
 use Time::HiRes qw[gettimeofday tv_interval];
@@ -126,8 +127,7 @@ my $now = "$year-$mon-$day $hour:$min:$sec";
 
 my $logFileLock = $logFile.".lck";
 
-my $dbm = $refDIR."chr$chrid.dbm";
-my %hash;
+my $database = $refDIR."CHR$chrid.db";
 
 if (!(-e $dbm))
 {
@@ -136,7 +136,24 @@ if (!(-e $dbm))
 	exit(1);
 }
 
-dbmopen (%hash,$dbm,0644) || die "can't open DBM $dbm!\n";
+my $driver   = "SQLite";
+my $dsn = "DBI:$driver:dbname=$database";
+my $userid = "";
+my $password = "";
+my $dbh = DBI->connect($dsn, $userid, $password, { RaiseError => 1 }) or die $DBI::errstr;
+
+my $stmt = qq(SELECT * from CUBE where POS=$pos;);
+
+my $sth = $dbh->prepare( $stmt );
+my $rv = $sth->execute() or die $DBI::errstr;
+
+if($rv < 0)
+{
+	print $DBI::errstr;
+
+	exit(1);
+}
+
 open (OUT,">".$chrout) || die "can't write to the file $chrout!\n";
 
 my %mafHash;
@@ -145,13 +162,11 @@ my %ldnumHash;
 
 print OUT "pos\tmaf\tdist2Gene\tLDNum\n";
 
-while (my ($pos,$value) = each %hash)
+while(my @row = $sth->fetchrow_array())
 {
-	my @fields = split(/\t/,$value);
-
-	my $maf = $fields[3];
-	my $dist = $fields[4];
-	my $lds = $fields[6];
+	my $maf = $row[4];
+	my $dist = $row[5];
+	my $lds = $row[7];
 
 	my @ldArr = split(/\|/,$lds);
 
@@ -205,7 +220,7 @@ while (my ($pos,$value) = each %hash)
 	}
 }
 
-dbmclose(%hash);
+$dbh->disconnect();
 
 close OUT;
 
