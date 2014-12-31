@@ -3,7 +3,8 @@
 use strict;
 use warnings;
 use FindBin qw($Bin);
-use DB_File;
+#use DB_File;
+use DBI;
 use Switch;
 use Getopt::Long;
 use Time::HiRes qw[gettimeofday tv_interval];
@@ -195,6 +196,11 @@ use SNPDictionary;
 my $dictObj = new SNPDictionary;
 
 $dictObj->setVer("hg19");
+$dictObj->{"driver"} = "SQLite";
+$dictObj->{"database"} = $refDIR."snp.db";;
+$dictObj->{"dsn"} = "";
+$dictObj->{"userid"} = "";
+$dictObj->{"password"} = "";
 
 $dictObj->openSNPDB($refDIR);
 
@@ -215,22 +221,32 @@ sub Annotate
 		my $chr = $1;
 		my $pos = $2;
 
-		my $file = $refDIR."chr$chr.dbm";
+		my $driver		= "SQLite";
+		my $database	=	$refDIR."CHR$chr.db";
+		my $dsn				= "DBI:$driver:dbname=$database";
+		my $userid		= "";
+		my $password	= "";
 
-		if (-e $file)
+		if (-e $database)
 		{
-			my %hash;
-
-			dbmopen (%hash,$file,0644) || die "can't open DBM $file!\n";
-
-			if (exists($hash{$pos}))
-			{
-				my @fields = split(/\t/,$hash{$pos});
+			my $dbh = DBI->connect($dsn, $userid, $password, { RaiseError => 1 }) or die $DBI::errstr;
+			my $stmt = qq(SELECT * from CUBE where POS=$pos;);
+			my $sth = $dbh->prepare( $stmt );
+			my $rv = $sth->execute() or die $DBI::errstr;
 			
-				$maf = $fields[3];
-				$dist = $fields[4];
+			if($rv < 0)
+			{
+				print $DBI::errstr;
 
-				@fields = split(/\|/,$fields[6]);
+				exit(1);
+			}
+
+			while(my @row = $sth->fetchrow_array())
+			{
+				$maf = $row[4];
+				$dist = $row[5];
+
+				my @fields = split(/\|/,$row[7]);
 
 				for (my $i = 0; $i < int(@fields); $i++)
 				{
@@ -247,8 +263,8 @@ sub Annotate
 					}
 				}
 			}
-
-			dbmclose(%hash);
+			
+			$dbh->disconnect();
 		}
 	}
 
