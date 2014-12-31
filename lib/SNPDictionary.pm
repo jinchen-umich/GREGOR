@@ -5,7 +5,8 @@ package SNPDictionary;
 use strict;
 use warnings;
 #use FindBin qw($Bin);
-use DB_File;
+#use DB_File;
+use DBI;
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -15,8 +16,11 @@ sub new
 {
 	my $self = {};
 
-	$self->{"rs2chrpos"} = {};
-	$self->{"chrpos2rs"} = {};
+	$self->{"driver"} = "SQLite";
+	$self->{"database"} = "";
+	$self->{"dsn"} = "";
+	$self->{"userid"} = "";
+	$self->{"password"} = "";
 
 	$self->{"ver"} = "Not_Set";
 	
@@ -63,6 +67,7 @@ sub openSNPDB
 
 	print "Please wait for connecting with SNP database ......\n";
 
+=pod
 	my $rs2chrposfile;
 	my $chrpos2rsfile;
 
@@ -101,6 +106,7 @@ sub openSNPDB
 
 		exit(0);
 	}
+=cut
 }
 
 sub closeSNPDB
@@ -109,8 +115,10 @@ sub closeSNPDB
 
 	print "Please wait for closing the SNP database ......\n";
 	
+=pod
 	dbmclose(%{$self->{"rs2chrpos"}});
 	dbmclose(%{$self->{"chrpos2rs"}});
+=cut
 }
 
 sub rsToChrPos
@@ -121,10 +129,40 @@ sub rsToChrPos
 
 	my $snp = "NA";
 
-	if (exists($self->{"rs2chrpos"}->{$rsid}))
+	my $driver = $self->{"driver"};
+	my $database = $self->{"database"};
+	my $dsn = "DBI:$driver:dbname=$database";
+	my $userid = $self->{"userid"};
+	my $password = $self->{"password"};
+	my $dbh = DBI->connect($dsn, $userid, $password, { RaiseError => 1 }) or die $DBI::errstr;
+
+	print "driver = $driver\n";
+	print "database = $database\n";
+	print "dsn = $dsn\n";
+	print "userid = $userid\n";
+	print "password = $password\n";
+	my $stmt = qq(SELECT * from SNP where RSID=\"$rsid\";);
+	
+	my $sth = $dbh->prepare( $stmt );
+	
+	my $rv = $sth->execute() or die $DBI::errstr;
+	
+	if($rv < 0)
 	{
-		$snp = $self->{"rs2chrpos"}->{$rsid};
+		print $DBI::errstr;
+
+		exit(1);
 	}
+			 
+	while(my @row = $sth->fetchrow_array())
+	{
+		my $chr = $row[1];
+		my $pos = $row[2];
+
+		$snp = $chr.":".$pos;
+	}
+	
+	$dbh->disconnect();
 
 	return ($snp);
 }
