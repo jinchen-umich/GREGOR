@@ -670,7 +670,7 @@ sub CreateMakeFile
 
 		for (my $i = 1; $i < 23; $i++)
 		{
-			print OUT $outfileDIR."chr$i.maf.dist.ldnum.txt.OK\t:\t".$infileDIR."chr$i.dbm\n";
+			print OUT $outfileDIR."chr$i.maf.dist.ldnum.txt.OK\t:\t".$infileDIR."CHR$i.db\n";
 
 			print OUT "\t".$self->{"conf"}->{"MOSRUN"}."$perlCMD ".$scriptDIR."calculate.maf.dist.ldnum.pl --chrid ".$i." --refDIR $refDIR --r2Threshold $r2Threshold --ldWindowSize $ldWindowSize --chrout ".$outfileDIR."chr$i.maf.dist.ldnum.txt --distributionFile ".$outfileDIR."chr$i.distribution.txt --logFile $logFile".$cmdSuffix."\n";
 			print OUT "\ttouch ".$outfileDIR."chr$i.maf.dist.ldnum.txt.OK\n\n";
