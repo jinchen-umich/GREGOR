@@ -94,6 +94,13 @@ sub ReadConf
 
 	$self->{"conf"}->{"SORTED_BED_FILE_DIR"} = $self->{"conf"}->{"OUT_DIR"}."sortedBedFiles/";
 
+	if ($conf{"POPULATION"} ne "")
+	{
+		$self->{"conf"}->{"POPULATION"} = $conf{"POPULATION"};
+
+		$self->{"conf"}->{"REF_DIR"} =  $self->{"conf"}->{"REF_DIR"}.$self->{"conf"}->{"POPULATION"}."/";
+	}
+
 	my $mosrunStr = $conf{"MOSRUN"};
 	$mosrunStr =~ s/\"|\ |\t//g;
 
@@ -169,7 +176,7 @@ sub VerifyConf
 	{
 		if (!(-e $self->{"conf"}->{"REF_DIR"}))
 		{
-			print "The reference directory which you defined in config file doesn't exist!\n";
+			print "The reference directory (".$self->{"conf"}->{"REF_DIR"}.") which you defined in config file doesn't exist!\n";
 
 			exit(1);
 		}
@@ -225,6 +232,20 @@ sub VerifyConf
 	{
 		print "Please specify bed file is soretd or not!\n";
 		
+		exit(1);
+	}
+
+	if (!(defined($self->{"conf"}->{"POPULATION"})))
+	{
+		print "Please define the population to EUR, AFR, AMR or ASN!\n";
+
+		exit(1);
+	}
+
+	if (($self->{"conf"}->{"POPULATION"} ne "EUR")&&($self->{"conf"}->{"POPULATION"} ne "AFR")&&($self->{"conf"}->{"POPULATION"} ne "AMR")&&($self->{"conf"}->{"POPULATION"} ne "ASN"))
+	{
+		print "The population should be defined to EUR, AFR, AMR or ASN!\n";
+
 		exit(1);
 	}
 
