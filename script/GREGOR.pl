@@ -110,6 +110,13 @@ unless (($optResult)&&($conf))
 	die "$usage\n";
 }
 
+if (!(-e $conf))
+{
+	print "can't find the file: $conf!\n";
+
+	exit(1);
+}
+
 loadConf($conf);
 
 print "--------------------------------------------------------------------------------------------------------\n";
