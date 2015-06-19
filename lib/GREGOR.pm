@@ -237,14 +237,14 @@ sub VerifyConf
 
 	if (!(defined($self->{"conf"}->{"POPULATION"})))
 	{
-		print "Please define the population to EUR, AFR, AMR or ASN!\n";
+		print "Please define the population to EUR, AFR, AMR, ASN or SAN!\n";
 
 		exit(1);
 	}
 
-	if (($self->{"conf"}->{"POPULATION"} ne "EUR")&&($self->{"conf"}->{"POPULATION"} ne "AFR")&&($self->{"conf"}->{"POPULATION"} ne "AMR")&&($self->{"conf"}->{"POPULATION"} ne "ASN"))
+	if (($self->{"conf"}->{"POPULATION"} ne "EUR")&&($self->{"conf"}->{"POPULATION"} ne "AFR")&&($self->{"conf"}->{"POPULATION"} ne "AMR")&&($self->{"conf"}->{"POPULATION"} ne "ASN")&&($self->{"conf"}->{"POPULATION"} ne "SAN"))
 	{
-		print "The population should be defined to EUR, AFR, AMR or ASN!\n";
+		print "The population should be defined to EUR, AFR, AMR, ASN or SAN!\n";
 
 		exit(1);
 	}
