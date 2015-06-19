@@ -169,6 +169,7 @@ my $logFile = $GREGORInstance->{"conf"}->{"OUT_DIR"}."GREGOR.log";
 my $totalTaskes = `grep touch $makeFile | wc -l`;
 $totalTaskes = $totalTaskes + $topNBed * 22 + 1;
 
+=pod
 my $thread = threads->create(\&progressBar,$logFile,$totalTaskes);
 $thread_num ++;
 $thread->detach();
@@ -176,11 +177,16 @@ $thread->detach();
 $thread = threads->create(\&runMakeFile,$makeFile,$jobs);
 $thread_num ++;
 $thread->detach();
+=cut
 
+`make -f $makeFile -j$jobs`;
+
+=pod
 while ($thread_num > 1)
 {
 	sleep(5);
 }
+=cut
 
 if ($topNBed > 0)
 {
@@ -188,17 +194,23 @@ if ($topNBed > 0)
 
 	$makeFile = $GREGORInstance->{"conf"}->{"OUT_DIR"}."TopNBed.MakeFile";
 
+	`make -f $makeFile -j$jobs`;
+
+=pod
 	$thread = threads->create(\&runMakeFile,$makeFile,$jobs);
 	$thread_num ++;
 	$thread->detach();
+=cut
 }
 
+=pod
 while ($thread_num > 1)
 {
 	sleep(5);
 }
 
 print "\r $totalTaskes / $totalTaskes (100%)\n";
+=cut
 
 my $endTime = timePoint();
 
