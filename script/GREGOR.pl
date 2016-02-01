@@ -97,7 +97,7 @@ domains (BED files).
 Note: the index SNPs should be hg19 version. All maf and LD data are from 1000G
 EUR samples! (Release date : May 21, 2011)
 
-Version : 1.2.1
+Version : 1.3.1
 
 Report Bug(s) : jich[at]umich[dot]edu
 ----------------------------------------------------------------------------------
