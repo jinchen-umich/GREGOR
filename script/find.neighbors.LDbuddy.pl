@@ -184,7 +184,9 @@ while (defined($readline=<IN>))
 						my @tmp = split(/\+/,$fields[$i]);
 						my $ldpos = $tmp[0];
 						my $r2 = $tmp[1];
-						
+					
+						print "pos = $pos\nldpos = $ldpos\n";
+
 						my $lddist = abs($pos - $ldpos);
 						
 						if (($r2 > $r2Threshold)&&($lddist <= $ldWindowSize))
