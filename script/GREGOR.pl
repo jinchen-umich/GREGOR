@@ -136,6 +136,9 @@ my $GREGORInstance = new GREGOR;
 # Read all configurations to hash. $self->{"conf"}
 $GREGORInstance->ReadConf(%hConf);
 
+# Read reference LD Buddy threshold
+$GREGORInstance->ReadReferenceLDBuddyThreshold();
+
 # Verify all parameters in config file
 $GREGORInstance->VerifyConf();
 
