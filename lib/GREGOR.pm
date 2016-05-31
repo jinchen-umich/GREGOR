@@ -8,7 +8,7 @@ use FindBin qw($Bin);
 
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(ReadConf VerifyConf CheckBedFiles CheckSNPList CreateMakeFile CreateTopNBedMakeFile);
+our @EXPORT = qw(ReadConf VerifyConf ReadReferenceLDBuddyThreshold CheckBedFiles CheckSNPList CreateMakeFile CreateTopNBedMakeFile);
 
 sub new
 {
@@ -54,14 +54,14 @@ sub ReadConf
 		$self->{"conf"}->{"R2THRESHOLD"} = $conf{"R2THRESHOLD"};
 	}
 
-	$self->{"conf"}->{"DEFAULTR2THRESHOLD"} = 0.7;
+	$self->{"conf"}->{"DEFAULTR2THRESHOLD"} = -1;
 
 	if ($conf{"LDWINDOWSIZE"} ne "")
 	{
 		$self->{"conf"}->{"LDWINDOWSIZE"} = $conf{"LDWINDOWSIZE"};
 	}
 
-	$self->{"conf"}->{"DEFAULTLDWINDOWSIZE"} = 1000000;
+	$self->{"conf"}->{"DEFAULTLDWINDOWSIZE"} = -1;
 
 	if ($conf{"MIN_NEIGHBOR_NUM"} ne "")
 	{
@@ -120,7 +120,7 @@ sub ReadConf
 	}
 	elsif ($batchtype =~ /^slurm$/i)
 	{
-		$self->{"conf"}->{"BATCHTYPE"} = "/net/mario/cluster/bin/srun";
+		$self->{"conf"}->{"BATCHTYPE"} = "srun";
 		$self->{"conf"}->{"BATCHCMD"} = $self->{"conf"}->{"BATCHTYPE"}." ".$self->{"conf"}->{"BATCHOPTS"}." ";
 	}
 	elsif ($batchtype =~ /^local$/i)
@@ -148,6 +148,45 @@ sub ReadConf
 	$self->{"conf"}->{"CUBE_DIR"} = $self->{"conf"}->{"OUT_DIR"}."cube/";
 	
 	$self->{"conf"}->{"SCRIPT_DIR"} = "$Bin/../script/";
+}
+
+sub ReadReferenceLDBuddyThreshold
+{
+	my $self = shift;
+
+	my $refDIR = $self->{"conf"}->{"REF_DIR"};
+
+	my $refLDBuddyThresholdFile = $refDIR."reference.LD.buddy.threshold.txt";
+
+	if (!(-e $refLDBuddyThresholdFile))
+	{
+		print "Can't find reference LD buddy Threshold file. Please re-download reference data!\n";
+
+		exit(1);
+	}
+
+	open (SUBIN,$refLDBuddyThresholdFile) || die "can't open the file:$refLDBuddyThresholdFile!\n";
+
+	my $subreadline;
+
+	while (defined($subreadline=<SUBIN>))
+	{
+		chomp $subreadline;
+
+		my @fields = split(/\=/,$subreadline);
+
+		if ($fields[0] eq "DEFAULTR2THRESHOLD")
+		{
+			$self->{"conf"}->{"DEFAULTR2THRESHOLD"} = $fields[1];
+		}
+
+		if ($fields[0] eq "DEFAULTLDWINDOWSIZE")
+		{
+			$self->{"conf"}->{"DEFAULTLDWINDOWSIZE"} = $fields[1];
+		}
+	}
+
+	close SUBIN;
 }
 
 sub VerifyConf
@@ -208,9 +247,30 @@ sub VerifyConf
 
 		exit(1);
 	}
-	elsif ($self->{"conf"}->{"R2THRESHOLD"} !~ /\d+/)
+	elsif ($self->{"conf"}->{"R2THRESHOLD"} !~ /^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/)
 	{
 		print "r2 threshold for LD buddy should be a number!\n";
+
+		exit(1);
+	}
+
+	if (!defined($self->{"conf"}->{"DEFAULTR2THRESHOLD"}))
+	{
+		print "Can't read reference r2 threshold for LD buddy!\n";
+
+		exit(1);
+	}
+	
+	if ($self->{"conf"}->{"DEFAULTR2THRESHOLD"} !~ /^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/)
+	{
+		print "The reference r2 threshold for LD buddy should be a number!\n";
+
+		exit(1);
+	}
+		
+	if (($self->{"conf"}->{"DEFAULTR2THRESHOLD"} <= 0) || (1 <= $self->{"conf"}->{"DEFAULTR2THRESHOLD"}))
+	{
+		print "The reference r2 threshold for LD buddy should be in (0,1)!\n";
 
 		exit(1);
 	}
@@ -224,6 +284,27 @@ sub VerifyConf
 	elsif ($self->{"conf"}->{"LDWINDOWSIZE"} !~ /^\d+$/)
 	{
 		print "LD window size should be a number!\n";
+
+		exit(1);
+	}
+
+	if (!defined($self->{"conf"}->{"DEFAULTLDWINDOWSIZE"}))
+	{
+		print "Can't read reference LD buddy window size threshold!\n";
+
+		exit(1);
+	}
+	
+	if ($self->{"conf"}->{"DEFAULTLDWINDOWSIZE"} !~ /^\d+$/)
+	{
+		print "The reference LD buddy window size threshold should be a number!\n";
+
+		exit(1);
+	}
+		
+	if ($self->{"conf"}->{"DEFAULTLDWINDOWSIZE"} <= 0)
+	{
+		print "The reference LD buddy window size threhold should be greater than 0!\n";
 
 		exit(1);
 	}
@@ -487,15 +568,16 @@ sub CreateMakeFile
 	my $infileDIR;
 	my $outfileDIR;
 
-	my $refDIR = $self->{"conf"}->{"REF_DIR"};
-	my $scriptDIR = $self->{"conf"}->{"SCRIPT_DIR"};
-	my $r2Threshold = $self->{"conf"}->{"R2THRESHOLD"};
-	my $defaultR2Threshold = $self->{"conf"}->{"DEFAULTR2THRESHOLD"};
-	my $ldWindowSize = $self->{"conf"}->{"LDWINDOWSIZE"};
-	my $defaultLdWindowSize = $self->{"conf"}->{"DEFAULTLDWINDOWSIZE"};
-	my $minNeighborNum = $self->{"conf"}->{"MIN_NEIGHBOR_NUM"};
-	my $bedFileIndex = $self->{"conf"}->{"BED_FILE_INDEX"};
-	my $sortedBedFileDIR = $self->{"conf"}->{"SORTED_BED_FILE_DIR"};
+	my $refDIR							= $self->{"conf"}->{"REF_DIR"};
+	my $scriptDIR						= $self->{"conf"}->{"SCRIPT_DIR"};
+	my $r2Threshold					= $self->{"conf"}->{"R2THRESHOLD"};
+	my $defaultR2Threshold	= $self->{"conf"}->{"DEFAULTR2THRESHOLD"};
+	my $ldWindowSize				= $self->{"conf"}->{"LDWINDOWSIZE"};
+	my $defaultLdWindowSize	= $self->{"conf"}->{"DEFAULTLDWINDOWSIZE"};
+	my $minNeighborNum			= $self->{"conf"}->{"MIN_NEIGHBOR_NUM"};
+	my $bedFileIndex				= $self->{"conf"}->{"BED_FILE_INDEX"};
+	my $sortedBedFileDIR		= $self->{"conf"}->{"SORTED_BED_FILE_DIR"};
+
 	my @unsortBedFiles;
 	undef @unsortBedFiles;
 	my @sortedBedFiles;
@@ -504,6 +586,13 @@ sub CreateMakeFile
 	undef @sortedBedOKFiles;
 	my @bedFileResultDIR;
 	undef @bedFileResultDIR;
+
+	if ($r2Threshold < $defaultR2Threshold)
+	{
+		print "R2THRESHOLD in config file should not be less than $defaultR2Threshold!\n ";
+
+		exit(1);
+	}
 
 	my $batchcmd	= "";
 	my $cmdSuffix	= "";
